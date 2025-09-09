@@ -5,7 +5,6 @@
 //  Created by Angela Yu on 08/07/2019.
 //  Copyright © 2019 The App Brewery. All rights reserved.
 //
-
 import UIKit
 import AVFoundation
 
@@ -13,39 +12,57 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var progressBar: UIProgressView!
     @IBOutlet weak var titleLabel: UILabel!
-    let eggTimes = ["Soft": 5, "Medium": 10, "Hard": 720]
-    var timer = Timer()
-    var player: AVAudioPlayer!
+    
+    let eggTimes = ["Soft": 300,
+                    "Medium": 420,
+                    "Hard": 720]
+    
+    var timer: Timer?
+    var player: AVAudioPlayer?
+    
     var totalTime = 0
     var secondsPassed = 0
+    
     @IBAction func hardnessSelected(_ sender: UIButton) {
+        // 1. Stop any old timer
+        timer?.invalidate()
         
-        timer.invalidate()
-        let hardness = sender.currentTitle!
-        totalTime = eggTimes[hardness]!
-        
-        progressBar.progress = 0.0
+        // 2. Reset state
+        guard let hardness = sender.currentTitle,
+              let time = eggTimes[hardness] else { return }
+        totalTime = time
         secondsPassed = 0
+        
+        progressBar.progress = 0
         titleLabel.text = hardness
         
-        Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateTimer), userInfo: nil, repeats: true)
-        
+        // 3. Schedule and store the timer
+        timer = Timer.scheduledTimer(timeInterval: 1.0,
+                                     target: self,
+                                     selector: #selector(updateTimer),
+                                     userInfo: nil,
+                                     repeats: true)
     }
+    
     @objc func updateTimer() {
         if secondsPassed < totalTime {
             secondsPassed += 1
             progressBar.progress = Float(secondsPassed) / Float(totalTime)
         } else {
-            timer.invalidate()
+            // 4. Invalidate the running timer
+            timer?.invalidate()
             titleLabel.text = "DONE!"
             
-            let url = Bundle.main.url(forResource: "alarm_sound", withExtension: "mp3")
-            player = try! AVAudioPlayer(contentsOf: url!)
-            player.play()
-            Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { timer in
-                self.player?.stop()
+            // 5. Play your alarm sound once
+            guard let url = Bundle.main.url(forResource: "alarm_sound", withExtension: "mp3")
+            else { return }
+            
+            do {
+                player = try AVAudioPlayer(contentsOf: url)
+                player?.play()
+            } catch {
+                print("Failed to load sound: \(error)")
             }
         }
-        
     }
 }
